@@ -1,0 +1,3 @@
+#!/bin/bash
+
+systemctl is-active nginx.service > /dev/null && systemctl stop nginx.service

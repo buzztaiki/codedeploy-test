@@ -1,0 +1,39 @@
+# For help completing this file, see the "AppSpec File Reference" in the  
+#   "AWS CodeDeploy User Guide" at
+#   http://docs.aws.amazon.com/codedeploy/latest/userguide/app-spec-ref.html
+version: 0.0
+os: linux 
+# os: windows
+files:
+  - source: /htdocs
+    destination: /var/www/html
+permissions:
+hooks:
+  ApplicationStop:
+    - location: scripts/application-stop
+      timeout: 300
+      runas: root
+# During the BeforeInstall deployment lifecycle event, run the commands 
+#   in the script specified in "location".
+  BeforeInstall:
+    - location: scripts/before-install
+      timeout: 300
+      runas: root
+# During the AfterInstall deployment lifecycle event, run the commands 
+#   in the script specified in "location".
+  AfterInstall:
+    - location: scripts/after-install
+      timeout: 300
+      runas: root
+# During the ApplicationInstall deployment lifecycle event, run the commands 
+#   in the script specified in "location".
+  ApplicationStart:
+    - location: scripts/application-start
+      timeout: 300
+      runas: root
+# During the ValidateService deployment lifecycle event, run the commands 
+#   in the script specified in "location".
+  ValidateService:
+    - location: scripts/validation-service
+      timeout: 300
+      runas: root

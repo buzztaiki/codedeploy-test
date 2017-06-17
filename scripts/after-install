@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo 'after install'
+ls -la /var/www/html

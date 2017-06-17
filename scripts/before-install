@@ -1,0 +1,4 @@
+#!/bin/bash
+
+printenv > /tmp/env.txt
+ls -la /var/www/html

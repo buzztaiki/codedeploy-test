@@ -1,0 +1,138 @@
+= AWS Code Deploy のテスト
+
+* https://aws.amazon.com/jp/codedeploy/
+* http://docs.aws.amazon.com/codedeploy/latest/userguide/welcome.html
+* http://dev.classmethod.jp/cloud/aws/cm-advent-calendar-2015-aws-re-entering-codedeploy/
+
+== ざっくり概要
+
+* S3にアップロードしたレビジョンファイル(zip)またはgithubのリポジトリからデプロイできる
+* 構成単位は
+  * Deploy Application
+    * レビジョンとDeploy Groupのコンテナ
+  * Deploy Group
+    * デプロイ対象とデプロイ方法を定義したもの
+    * デプロイ対象はAutoscaleグループやタグで指定できる
+    * デプロイ方法はin placeとblue greenが指定できる
+* デプロイは「Deploy Gropuにレビジョンをデプロイする」といった形で行なう
+* Autoscale時に自動でデプロイが可能(IAMにアプリをインストールしておかなくても良い)
+
+== インスタンスプロファイルについて
+
+* インスタンスプロファイル == IAMロールと考えて殆ど問題ない
+* インスタンスプロファイル一つにつきRoleは一つだけ指定できる(複数のロールを指定できない)
+* EC2インスタンスに設定するのは実はIAMロールではなくインスタンスプロファイル
+* 画面からIAMロールを作ると同じ名前のインスタンスプロファイルが作成される
+* APIから作った場合はそれぞれ個別に紐付ける
+* 一対一なのでIAMロールに適切にEC2インスタンスの役割を設定する必要がある
+
+== S3バケットを準備
+
+[source, shell]
+----
+% aws s3 mb s3://buzztaiki-codedeploy-test
+----
+
+== Role
+
+=== Code Deploy ロール
+
+http://docs.aws.amazon.com/codedeploy/latest/userguide/getting-started-create-service-role.html
+
+* Deploy Group に設定するIAMロール
+* 「Code DeployがAWSCodeDeployRoleで定義されるサービスにアクセス可能である」と定義される
+* Principal には `codedeploy.ap-northeast-1.amazonaws.com` を指定してリージョンを特定する事もできる
+
+.codedeploy-test-role.json
+[source, json]
+----
+include::codedeploy-test-role.json[]
+----
+
+[source, shell]
+----
+% aws iam create-role --role-name codedeploy-test-role --assume-role-policy-document file://codedeploy-test-role.json
+% aws iam attach-role-policy --role-name codedeploy-test-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+% aws iam get-role --role-name codedeploy-test-role --output json | jq '.Role.Arn' -r > codedeploy-test-role.arn
+----
+
+=== EC2 インスタンスプロファイル (IAMロール)
+
+http://docs.aws.amazon.com/ja_jp/codedeploy/latest/userguide/getting-started-create-iam-instance-profile.html
+
+* EC2インスタンスに設定するIAMロール(インスタンスプロファイル)
+* EC2から指定のS3バケットに対してGet, List可能であると定義される
+* `S3ReadOnlyAccess` も使えなくはないけど、適切にS3バケットを指定した方が良いでしょう
+
+.codedeploy-test-ec2-role.json
+[source, json]
+----
+include::codedeploy-test-ec2-role.json[]
+----
+
+.codedeploy-test-ec2-policy.json
+[source, json]
+----
+include::codedeploy-test-ec2-policy.json[]
+----
+
+[source, shell]
+----
+% aws iam create-role --role-name codedeploy-test-ec2-role --assume-role-policy-document file://codedeploy-test-ec2-role.json
+% aws iam put-role-policy --role-name codedeploy-test-ec2-role --policy-name codedeploy-test-ec2-policy --policy-document file://codedeploy-test-ec2-policy.json
+% aws iam create-instance-profile --instance-profile-name codedeploy-test-ec2-role
+% aws iam add-role-to-instance-profile --instance-profile-name codedeploy-test-ec2-role --role-name codedeploy-test-ec2-role
+----
+
+== インスタンス作成
+
+.user-data-script.bash
+[source, shell]
+----
+include::user-data-script.bash[]
+----
+
+[source, shell]
+----
+% aws ec2 run-instances --image-id ami-afb09dc8 --count 1 --instance-type t2.micro --key-name buzztaiki \
+      --security-groups ssh http --iam-instance-profile Name=codedeploy-test-ec2-role \
+      --user-data file://user-data-script.bash \
+      --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=codedeploy-test}]'
+----
+
+== Deploy Application の作成
+
+[source, shell]
+----
+% aws deploy create-application --application-name codedeploy-test
+----
+
+
+== Deploy Group の作成
+
+* `service-role-arn` で「Code Deploy ロール」で作ったロールのarnを指定する
+* `ec2-tag-filters` で対象のインスタンスを指定する
+* `auto-rollback-configuration` で自動ロールバックを有効に設定してる (失敗したら前回成功したリビジョンでデプロイしなおし)
+* `deployment-style` でインスタンス内のファイル差し替えを指定してる (Blue Greenも指定できる)
+
+[source, shell]
+----
+% aws deploy create-deployment-group --application-name codedeploy-test --deployment-group-name codedeploy-test-group \
+      --deployment-config-name CodeDeployDefault.OneAtATime \
+      --auto-rollback-configuration enabled=true,events=DEPLOYMENT_FAILURE \
+      --deployment-style deploymentType=IN_PLACE,deploymentOption=WITHOUT_TRAFFIC_CONTROL \
+      --ec2-tag-filters Key=Name,Value=codedeploy-test,Type=KEY_AND_VALUE \
+      --service-role-arn $(cat codedeploy-test-role.arn)
+----
+
+== デプロイ
+
+[source, shell]
+----
+% aws deploy push --application-name codedeploy-test --s3-location s3://buzztaiki-codedeploy-test/codedeploy-test.zip  --ignore-hidden-files --source .
+----
+
+[source, shell]
+----
+% aws deploy create-deployment --application-name codedeploy-test --deployment-config-name CodeDeployDefault.OneAtATime --deployment-group-name codedeploy-test-group --s3-location bucket=buzztaiki-codedeploy-test,bundleType=zip,key=codedeploy-test.zip
+----
