@@ -14,5 +14,23 @@ deployment:
           revision_type: S3
           s3_location:
             bucket: buzztaiki-codedeploy-test
-            key_pattern: codedeploy-test-{SHORT_COMMIT}-{BUILD_NUM}
+            key_pattern: codedeploy-test-{BRANCH}-{SHORT_COMMIT}-{BUILD_NUM}
         region: ap-northeast-1
+  awscli:
+    branch: awscli
+    commands:
+      - >-
+        aws deploy push
+        --region ap-northeast-1
+        --application-name codedeploy-test
+        --s3-location s3://buzztaiki-codedeploy-test/codedeploy-test-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:8}-${CIRCLE_BUILD_NUM}.zip
+        --ignore-hidden-files --source .
+      - >-
+        aws deploy create-deployment
+        --region ap-northeast-1
+        --application-name codedeploy-test --deployment-group-name codedeploy-test-group
+        --s3-location bucket=buzztaiki-codedeploy-test,key=codedeploy-test-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:8}-${CIRCLE_BUILD_NUM}.zip,bundleType=zip
+        --deployment-config-name CodeDeployDefault.OneAtATime
+        --output text --query deploymentId
+        > deployment-id
+      - aws --region ap-northeast-1 deploy wait deployment-successful --deployment-id $(cat deployment-id)
