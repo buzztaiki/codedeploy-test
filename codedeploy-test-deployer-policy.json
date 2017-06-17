@@ -1,0 +1,46 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::buzztaiki-codedeploy-test/*"
+      ]
+    },
+
+    {
+      "Effect": "Allow",
+      "Action": [
+        "codedeploy:RegisterApplicationRevision",
+        "codedeploy:GetApplicationRevision"
+      ],
+      "Resource": [
+        "arn:aws:codedeploy:ap-northeast-1:059958178887:application:codedeploy-test"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "codedeploy:CreateDeployment",
+        "codedeploy:GetDeployment"
+      ],
+      "Resource": [
+        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentgroup:codedeploy-test/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "codedeploy:GetDeploymentConfig"
+      ],
+      "Resource": [
+        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentconfig:CodeDeployDefault.OneAtATime",
+        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentconfig:CodeDeployDefault.HalfAtATime",
+        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentconfig:CodeDeployDefault.AllAtOnce"
+      ]
+    }
+  ]
+}

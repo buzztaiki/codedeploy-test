@@ -26,6 +26,15 @@
 * APIから作った場合はそれぞれ個別に紐付ける
 * 一対一なのでIAMロールに適切にEC2インスタンスの役割を設定する必要がある
 
+== アカウントIDを保存
+
+* ARNを作るときにいろいろと必要
+
+[source, shell]
+----
+% aws sts get-caller-identity --output json | jq '.Account' -r > account.id
+----
+
 == S3バケットを準備
 
 [source, shell]
@@ -135,4 +144,43 @@ include::user-data-script.bash[]
 [source, shell]
 ----
 % aws deploy create-deployment --application-name codedeploy-test --deployment-config-name CodeDeployDefault.OneAtATime --deployment-group-name codedeploy-test-group --s3-location bucket=buzztaiki-codedeploy-test,bundleType=zip,key=codedeploy-test.zip
+----
+
+
+== CircleCIを設定する
+
+https://circleci.com/docs/1.0/continuous-deployment-with-aws-codedeploy
+
+=== IAMユーザーの作成
+
+* デプロイに必要な権限を定義したポリシーを付与する
+* CircleCIからデプロイするのに利用する
+
+[source, shell]
+----
+% aws iam create-user --user-name circleci
+----
+
+[source, shell]
+----
+% aws iam put-user-policy --user-name circleci --policy-name codedeploy-test-deployer-policy --policy-document file://codedeploy-test-deployer-policy.json
+----
+
+=== IAMユーザーの認証情報を取得して設定する
+
+* 認証情報を作成・取得する
+* 取得した認証情報をドキュメントに従って設定する
+
+[source, shell]
+----
+% aws iam create-access-key --user-name circleci --output json > circleci.key
+# CircleCIに設定してから
+% rm circleci.key
+----
+
+=== circle.yml に codedeploy の設定をする
+
+[source, yaml]
+----
+include::circle.yml[]
 ----
