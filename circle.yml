@@ -1,5 +1,9 @@
+test:
+  post:
+    - echo test
+
 deployment:
   master:
     branch: master
     commands:
-      - echo ok
+      - echo deployment
