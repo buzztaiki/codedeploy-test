@@ -118,6 +118,10 @@ link:user-data-script.bash[]
 
 == デプロイ
 
+* リビジョンを登録してからデプロイする
+* create-deployment で etag を指定しないと対象のキーの最新の中身でデプロイされる
+
+
 [source, shell]
 ----
 % aws deploy push --application-name codedeploy-test --s3-location s3://buzztaiki-codedeploy-test/codedeploy-test.zip  --ignore-hidden-files --source .
@@ -155,6 +159,9 @@ link:codedeploy-test-deployer-policy.json[]
 
 * 認証情報を作成・取得する
 * 取得した認証情報をドキュメントに従って設定する
+* awssdk と etag を使って送信したい場合は http://dev.classmethod.jp/cloud/aws/codedeploy-push-behind-the-scenes/ を参考にする
+  * push の代わりに自前で gzip して s3 に put して register する
+  * http://docs.aws.amazon.com/sdkforruby/api/Aws/CodeDeploy/Client.html を使った方がいいかもしれない
 
 [source, shell]
 ----
