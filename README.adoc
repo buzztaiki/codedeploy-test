@@ -172,4 +172,8 @@ link:codedeploy-test-deployer-policy.json[]
 
 === circle.yml に codedeploy の設定をする
 
+* master は普通にCircleCIが提供しているcodedeployディレクティブを使ってデプロイする例
+* awscli は自前でデプロイする例
+* codedeployディレクティブを使った場合デプロイの前にバンドルを作る事ができないので、その場合は awscli を使うと良い
+
 link:circle.yml[]
