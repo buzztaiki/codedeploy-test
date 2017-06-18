@@ -18,7 +18,7 @@
         "codedeploy:GetApplicationRevision"
       ],
       "Resource": [
-        "arn:aws:codedeploy:ap-northeast-1:059958178887:application:codedeploy-test"
+        "arn:aws:codedeploy:ap-northeast-1:{account-id}:application:codedeploy-test"
       ]
     },
     {
@@ -28,7 +28,7 @@
         "codedeploy:GetDeployment"
       ],
       "Resource": [
-        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentgroup:codedeploy-test/*"
+        "arn:aws:codedeploy:ap-northeast-1:{account-id}:deploymentgroup:codedeploy-test/*"
       ]
     },
     {
@@ -37,7 +37,7 @@
         "codedeploy:GetDeploymentConfig"
       ],
       "Resource": [
-        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentconfig:*"
+        "arn:aws:codedeploy:ap-northeast-1:{account-id}:deploymentconfig:*"
       ]
     }
   ]

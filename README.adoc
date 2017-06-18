@@ -32,7 +32,7 @@
 
 [source, shell]
 ----
-% aws sts get-caller-identity --output json | jq '.Account' -r > account.id
+% aws sts get-caller-identity --query 'Account' --output text > account-id
 ----
 
 == S3バケットを準備
@@ -62,7 +62,7 @@ include::codedeploy-test-role.json[]
 ----
 % aws iam create-role --role-name codedeploy-test-role --assume-role-policy-document file://codedeploy-test-role.json
 % aws iam attach-role-policy --role-name codedeploy-test-role --policy-arn arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
-% aws iam get-role --role-name codedeploy-test-role --output json | jq '.Role.Arn' -r > codedeploy-test-role.arn
+% aws iam get-role --role-name codedeploy-test-role
 ----
 
 === EC2 インスタンスプロファイル (IAMロール)
@@ -131,7 +131,7 @@ include::user-data-script.bash[]
       --auto-rollback-configuration enabled=true,events=DEPLOYMENT_FAILURE \
       --deployment-style deploymentType=IN_PLACE,deploymentOption=WITHOUT_TRAFFIC_CONTROL \
       --ec2-tag-filters Key=Name,Value=codedeploy-test,Type=KEY_AND_VALUE \
-      --service-role-arn $(cat codedeploy-test-role.arn)
+      --service-role-arn arn:aws:iam::$(cat account-id):role/codedeploy-test-role
 ----
 
 == デプロイ
@@ -156,6 +156,12 @@ https://circleci.com/docs/1.0/continuous-deployment-with-aws-codedeploy
 * デプロイに必要な権限を定義したポリシーを付与する
 * CircleCIからデプロイするのに利用する
 
+.codedeploy-test-deployer-policy.json
+[source, json]
+----
+include::codedeploy-test-deployer-policy.json[]
+----
+
 [source, shell]
 ----
 % aws iam create-user --user-name circleci
@@ -163,7 +169,8 @@ https://circleci.com/docs/1.0/continuous-deployment-with-aws-codedeploy
 
 [source, shell]
 ----
-% aws iam put-user-policy --user-name circleci --policy-name codedeploy-test-deployer-policy --policy-document file://codedeploy-test-deployer-policy.json
+% cat codedeploy-test-deployer-policy.json | id=$(cat account-id) perl -pe 's/{account-id}/\Q$ENV{id}/g' > codedeploy-test-deployer-policy-gen.json
+% aws iam put-user-policy --user-name circleci --policy-name codedeploy-test-deployer-policy --policy-document file://codedeploy-test-deployer-policy-gen.json
 ----
 
 === IAMユーザーの認証情報を取得して設定する
