@@ -37,9 +37,7 @@
         "codedeploy:GetDeploymentConfig"
       ],
       "Resource": [
-        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentconfig:CodeDeployDefault.OneAtATime",
-        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentconfig:CodeDeployDefault.HalfAtATime",
-        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentconfig:CodeDeployDefault.AllAtOnce"
+        "arn:aws:codedeploy:ap-northeast-1:059958178887:deploymentconfig:*"
       ]
     }
   ]
