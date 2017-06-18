@@ -1,3 +1,10 @@
+machine:
+  environment:
+    AWS_DEFAULT_REGION: ap-northeast-1
+    DEPLOY_BUCKET: buzztaiki-codedeploy-test
+    DEPLOY_KEY_SUFFIX: ${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:8}-${CIRCLE_BUILD_NUM}
+    DEPLOY_KEY: codedeploy-test-$DEPLOY_KEY_SUFFIX.zip
+
 test:
   post:
     - echo test
@@ -17,20 +24,18 @@ deployment:
             key_pattern: codedeploy-test-{BRANCH}-{SHORT_COMMIT}-{BUILD_NUM}
         region: ap-northeast-1
   awscli:
-    branch: awscli
+    branch: /awscli-.*/
     commands:
       - >-
         aws deploy push
-        --region ap-northeast-1
         --application-name codedeploy-test
-        --s3-location s3://buzztaiki-codedeploy-test/codedeploy-test-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:8}-${CIRCLE_BUILD_NUM}.zip
+        --s3-location s3://$DEPLOY_BUCKET/$DEPLOY_KEY
         --ignore-hidden-files --source .
       - >-
         aws deploy create-deployment
-        --region ap-northeast-1
         --application-name codedeploy-test --deployment-group-name codedeploy-test-group
-        --s3-location bucket=buzztaiki-codedeploy-test,key=codedeploy-test-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:8}-${CIRCLE_BUILD_NUM}.zip,bundleType=zip
+        --s3-location bucket=$DEPLOY_BUCKET,key=$DEPLOY_KEY,bundleType=zip
         --deployment-config-name CodeDeployDefault.OneAtATime
         --output text --query deploymentId
         > deployment-id
-      - aws --region ap-northeast-1 deploy wait deployment-successful --deployment-id $(cat deployment-id)
+      - aws deploy wait deployment-successful --deployment-id $(cat deployment-id)
